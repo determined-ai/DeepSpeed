@@ -3,6 +3,7 @@ import sys
 import shutil
 import subprocess
 import warnings
+from shlex import quote
 from abc import ABC, abstractmethod
 
 from ..utils import logger
@@ -56,7 +57,7 @@ class PDSHRunner(MultiNodeRunner):
 
         exports = ""
         for key, val in self.exports.items():
-            exports += "export {}={}; ".format(key, val)
+            exports += "export {}={}; ".format(key, quote(val))
 
         deepspeed_launch = [
             exports,
@@ -72,6 +73,10 @@ class PDSHRunner(MultiNodeRunner):
         ]
         if self.args.detect_nvlink_pairs:
             deepspeed_launch += ["--detect_nvlink_pairs"]
+        if self.args.no_python:
+            deepspeed_launch.append("--no_python")
+        if self.args.module:
+            deepspeed_launch.append("--module")
 
         return pdsh_cmd_args + deepspeed_launch + [self.user_script
                                                    ] + self.user_arguments
@@ -112,7 +117,7 @@ class OpenMPIRunner(MultiNodeRunner):
             
         export_cmd = []
         for k, v in self.exports.items():
-            export_cmd += ['-x', f'{k}={v}']
+            export_cmd += ['-x', f'{k}={quote(v)}']
 
         python_exec = [sys.executable, "-u"]
 
@@ -188,7 +193,7 @@ class MVAPICHRunner(MultiNodeRunner):
 
         export_cmd = []
         for k, v in self.exports.items():
-            export_cmd += ['-env', f'{k}={v}']
+            export_cmd += ['-env', f'{k}={quote(v)}']
 
         python_exec = [sys.executable, "-u"]
 

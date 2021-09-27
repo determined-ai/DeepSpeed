@@ -53,6 +53,18 @@ def parse_args():
     parser.add_argument("--detect_nvlink_pairs", action="store_true",
                         help="autodetects nvlink pairs and remaps CUDA_VISIBLE_DEVICES along the fastest connections")
 
+    parser.add_argument("--module",
+                        action="store_true",
+                        help="Change each process to interpret the launch "
+                        "script as a Python module, executing with the same "
+                        "behavior as 'python -m'.")
+
+    parser.add_argument("--no_python",
+                        action="store_true",
+                        help="Skip prepending the training script with "
+                        "'python' - just execute it directly. Useful when "
+                        "the script is not a Python script.")
+
     # positional
     parser.add_argument("training_script",
                         type=str,
@@ -117,6 +129,9 @@ def main():
     current_env["MASTER_ADDR"] = args.master_addr
     current_env["MASTER_PORT"] = str(args.master_port)
     current_env["WORLD_SIZE"] = str(dist_world_size)
+    current_env["CROSS_RANK"] = str(args.node_rank)
+    current_env["CROSS_SIZE"] = str(args.nnodes)
+    current_env["LOCAL_SIZE"] = str(num_local_procs)
 
     processes = []
     for local_rank in range(0, num_local_procs):
@@ -126,12 +141,20 @@ def main():
         current_env["LOCAL_RANK"] = str(local_rank)
 
         # spawn the processes
-        cmd = [
-            sys.executable,
-            "-u",
-            args.training_script,
-            "--local_rank={}".format(local_rank)
-        ] + args.training_script_args
+        cmd = []
+        if not args.no_python:
+            cmd.append(sys.executable)
+            cmd.append("-u")
+            if args.module:
+                cmd.append("-m")
+        else:
+            if args.module:
+                raise ValueError(
+                    "Don't use both the '--no_python' flag"
+                    " and the '--module' flag at the same time."
+                )
+        cmd.append(args.training_script)
+        cmd += args.training_script_args
 
         sig_names = {2: "SIGINT", 15: "SIGTERM"}
         last_return_code = None

@@ -72,7 +72,7 @@ def get_pld_params(param_dict):
 
 
 def get_amp_enabled(param_dict):
-    if AMP in param_dict.keys():
+    if AMP in param_dict.keys() and param_dict[AMP] is not None:
         return get_scalar_param(param_dict[AMP], AMP_ENABLED, AMP_ENABLED_DEFAULT)
     else:
         return False

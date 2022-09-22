@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import shutil
@@ -118,6 +119,65 @@ class OpenMPIRunner(MultiNodeRunner):
 
         return mpirun_cmd + export_cmd + python_exec + [self.user_script
                                                         ] + self.user_arguments
+
+class SlurmRunner(MultiNodeRunner):
+    def __init__(self, args, world_info_base64, resource_pool):
+        super().__init__(args, world_info_base64)
+        self.resource_pool = resource_pool
+
+    def backend_exists(self):
+        return shutil.which('sinfo')
+    
+    def parse_user_args(self):
+        user_args = []
+        for arg in self.args.user_args:
+            if arg.startswith('{') and arg.endswith('}'):
+                try:
+                    arg_dict = json.loads(arg)
+                    if 'config_files' in arg_dict:
+                        config_files = {}
+                        for k, v in arg_dict.get('config_files', {}).items():
+                            config_files[k] = json.loads(v)
+                        arg_dict['config_files'] = config_files
+                except json.JSONDecodeError as jde:
+                    raise ValueError('SLURM is picky and needs you to use plain json for your configs. Check for comments and lowercase trues') from jde
+                arg = json.dumps(arg_dict, separators=(',', ':'))
+            user_args.append(arg)
+        return user_args
+
+    def get_cmd(self, environment, active_resources):
+        assert not getattr(self.args, 'detect_nvlink_pairs', False), "slurm backend does not support remapping visible devices"
+        total_process_count = sum(self.resource_pool.values())
+        srun_cmd = [
+            'srun',
+            '-n',
+            f'{total_process_count}',
+        ]
+
+        if getattr(self.args, 'slurm_comment', ''):
+            srun_cmd += ['--comment', self.args.slurm_comment]
+
+        if self.args.include != "":
+            srun_cmd.append('--include')
+            srun_cmd.append(f'{self.args.include}')
+        if self.args.exclude != "":
+            srun_cmd.append('--exclude')
+            srun_cmd.append(f'{self.args.exclude}')
+        if self.args.num_nodes > 0:
+            srun_cmd.append('--nodes')
+            srun_cmd.append(f'{self.args.num_nodes}')
+        if self.args.num_gpus > 0:
+            srun_cmd.append('--gpus')
+            srun_cmd.append(f'{self.args.num_gpus}')
+
+
+        exports = '--export=ALL' 
+        for key, val in self.exports.items():
+            exports +=  f",{key}={val}" 
+
+        python_exec = [sys.executable, "-u"]
+        command = srun_cmd + [exports] + python_exec + [self.user_script] + self.user_arguments
+        return command
 
 
 class MVAPICHRunner(MultiNodeRunner):

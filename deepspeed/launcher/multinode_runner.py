@@ -153,9 +153,8 @@ class SlurmRunner(MultiNodeRunner):
             '-n',
             f'{total_process_count}',
         ]
-
-        if getattr(self.args, 'slurm_comment', ''):
-            srun_cmd += ['--comment', self.args.slurm_comment]
+        if self.args.comment != '':
+            srun_cmd += ['--comment', self.args.comment]
 
         if self.args.include != "":
             srun_cmd.append('--include')
@@ -169,7 +168,6 @@ class SlurmRunner(MultiNodeRunner):
         if self.args.num_gpus > 0:
             srun_cmd.append('--gpus')
             srun_cmd.append(f'{self.args.num_gpus}')
-
 
         exports = '--export=ALL' 
         for key, val in self.exports.items():

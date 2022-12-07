@@ -108,6 +108,11 @@ def parse_args(args=None):
                         action="store_true",
                         help="Force multi-node launcher mode, helps in cases where user "
                         "wants to launch on single remote node.")
+    
+    parser.add_argument("--comment",
+                        default="",
+                        type=str,
+                        help="A comment for the run that can provide metadata. Is passed to the SlurmLauncher, if using")
 
     parser.add_argument("--detect_nvlink_pairs", action="store_true",
                         help="(optional) autodetects nvlink pairs and remaps CUDA_VISIBLE_DEVICES along the "

@@ -666,7 +666,7 @@ class DeepSpeedEngine(Module):
             self._config.autotuning_config.model_info and
             self._config.autotuning_config.model_info.get("profile", False)
         )
-        
+
 
     def sparse_gradients_enabled(self):
         return self._config.sparse_gradients_enabled
@@ -2780,7 +2780,7 @@ class DeepSpeedEngine(Module):
                                                          custom_load_fn=custom_load_fn)
 
         load_zero_checkpoint = self.zero_optimization() or self.bfloat16_enabled()
-        if load_zero_checkpoint and load_path is not None:
+        if load_zero_checkpoint and load_path is not None and load_optimizer_states:
             success = self._load_zero_checkpoint(
                 load_dir,
                 tag,

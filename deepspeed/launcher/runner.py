@@ -383,18 +383,16 @@ def main(args=None):
             if any([var.startswith(name) for name in EXPORT_ENVS]):
                 runner.add_export(var, env[var])
 
-        logger.error("CWD = {}".format(os.getcwd()))
-        logger.error("DEEPSPEED_ENVIRONMENT_PATHS = {}".format(DEEPSPEED_ENVIRONMENT_PATHS))
-        logger.error("DEEPSPEED_ENVIRONMENT_NAME = {}".format(DEEPSPEED_ENVIRONMENT_NAME))
         for environ_path in DEEPSPEED_ENVIRONMENT_PATHS:
             environ_file = os.path.join(environ_path, DEEPSPEED_ENVIRONMENT_NAME)
-            logger.error("environ_file = {}".format(environ_file))
             if os.path.isfile(environ_file):
                 with open(environ_file, 'r') as fd:
                     for var in fd.readlines():
-                        logger.error("environ_file-line = >>>{}<<<".format(var))
-                        key, val = var.split('=', maxsplit=1)
-                        runner.add_export(key, val)
+                        try:
+                            key, val = var.split('=', maxsplit=1)
+                            runner.add_export(key, val)
+                        except Exception:
+                            logger.warning("Malformed ENV var found in {0}: >>>{1}<<<".format(environ_file, var))
         cmd = runner.get_cmd(env, active_resources)
 
     logger.info("cmd = {}".format(' '.join(cmd)))

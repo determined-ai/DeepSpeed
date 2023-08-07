@@ -2204,7 +2204,7 @@ class DeepSpeedEngine(Module):
             titer += msg[BACKWARD_GLOBAL_TIMER] if BACKWARD_GLOBAL_TIMER in msg else 0
             titer += msg[STEP_GLOBAL_TIMER] if STEP_GLOBAL_TIMER in msg else 0
 
-            msg["latency"] = titer
+            msg["latency"] = titer * self.gradient_accumulation_steps()
             msg["FLOPS_per_gpu"] = self.flops * 1_000_000 * self.gradient_accumulation_steps() / titer
             msg["throughput"] = self.train_batch_size() * 1_000_000 / \
                 msg["latency"]
